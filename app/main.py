@@ -14,6 +14,7 @@ from app.routers import (
     ip_location_router,
     reverse_geocoding_router,
     cache_router,
+    generate_tour_router,
 )
 
 app = FastAPI(
@@ -71,6 +72,12 @@ app.include_router(
     house_address_router.router,
     prefix="/api/gps",
     tags=["house-address"],
+)
+
+app.include_router(
+    generate_tour_router.router,
+    prefix="/api/gps",
+    tags=["generate-tour"],
 )
 
 app.include_router(

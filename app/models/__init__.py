@@ -14,6 +14,8 @@ from app.models.reverse_geocoding import (
 )
 from app.models.house_address import HouseAddressRequest, HouseAddressResponse
 
+from app.models.generate_route import GenerateRouteRequest, GenerateRouteResponse
+
 __all__ = [
     # Base
     "GPSLocation",
@@ -30,4 +32,7 @@ __all__ = [
     # House Address
     "HouseAddressRequest",
     "HouseAddressResponse",
+    # Generate Route
+    "GenerateRouteRequest",
+    "GenerateRouteResponse",
 ]
