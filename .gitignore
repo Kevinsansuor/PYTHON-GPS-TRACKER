@@ -5,5 +5,8 @@ env/
 venv/
 ENV/
 env.bak/
-venv.bak/
+venv.bak/networkx
 __pycache__/
+
+# Cache de la aplicación
+cache/
