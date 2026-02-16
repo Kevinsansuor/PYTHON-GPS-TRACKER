@@ -3,14 +3,60 @@ Servicio para Forward Geocoding (Dirección → Coordenadas)
 """
 
 from datetime import datetime
+import unicodedata
+from typing import Optional
 from fastapi import HTTPException, status
 
-from app.models.forward_geocoding import ForwardGeocodingResponse
+from app.models.forward_geocoding import DepartmentInfo, ForwardGeocodingResponse
 from app.services.geocoding_client import get_geocoding_client
 
 
 class ForwardGeocodingService:
     """Servicio para convertir direcciones en coordenadas GPS"""
+
+    @staticmethod
+    def _normalize_text(value: str) -> str:
+        normalized = unicodedata.normalize("NFKD", value)
+        return "".join(ch for ch in normalized if not unicodedata.combining(ch)).lower()
+
+    @staticmethod
+    def _shorten(text: str, max_len: int = 310) -> str:
+        if len(text) <= max_len:
+            return text
+        return text[: max_len - 3].rstrip() + "..."
+
+    @classmethod
+    def _get_department_info(
+        cls, client, state: Optional[str], country: Optional[str]
+    ) -> Optional[DepartmentInfo]:
+        if not state or not country:
+            return None
+
+        country_norm = cls._normalize_text(country)
+        if country_norm not in {"colombia", "co"}:
+            return None
+
+        departments = client.colombia_departments()
+        if not departments:
+            return None
+
+        state_norm = cls._normalize_text(state)
+        for dept in departments:
+            name = dept.get("name")
+            if not name:
+                continue
+            if cls._normalize_text(name) == state_norm:
+                description = dept.get("description")
+                if isinstance(description, str):
+                    description = cls._shorten(description)
+                return DepartmentInfo(
+                    name=name,
+                    description=description,
+                    population=dept.get("population"),
+                    surface=dept.get("surface"),
+                    phone_prefix=dept.get("phonePrefix"),
+                )
+        return None
 
     @staticmethod
     def geocode(address: str) -> ForwardGeocodingResponse:
@@ -42,6 +88,10 @@ class ForwardGeocodingService:
                     detail=f"No se pudo encontrar la dirección: {address}",
                 )
 
+            department_info = ForwardGeocodingService._get_department_info(
+                client, g.state, g.country
+            )
+
             return ForwardGeocodingResponse(
                 address=address,
                 latitude=g.lat,
@@ -52,6 +102,7 @@ class ForwardGeocodingService:
                 country=g.country,
                 postal=g.postal,
                 geojson=g.geojson,
+                department=department_info,
                 timestamp=datetime.now(),
             )
 

@@ -137,6 +137,25 @@ class SmartGeocodingClient:
             ),
         )
 
+    def colombia_departments(self) -> Optional[list[Dict[str, Any]]]:
+        cache_key = self._hash_key("api-colombia", "departments")
+        cached = self._cache.get(cache_key) if self._cache else None
+        if cached:
+            return cached.get("data")
+
+        try:
+            response = self._session.get(
+                "https://api-colombia.com/api/v1/Department", timeout=10
+            )
+            response.raise_for_status()
+            data = response.json()
+        except Exception:  # noqa: BLE001
+            return None
+
+        if self._cache:
+            self._cache.set(cache_key, {"data": data})
+        return data
+
     def _request(
         self,
         provider: str,
