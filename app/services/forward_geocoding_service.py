@@ -7,7 +7,13 @@ import unicodedata
 from typing import Optional
 from fastapi import HTTPException, status
 
-from app.models.forward_geocoding import DepartmentInfo, ForwardGeocodingResponse
+from app.models.forward_geocoding import (
+    ApiColombiaDepartment,
+    ApiColombiaInfo,
+    DepartmentInfo,
+    ForwardGeocodingResponse,
+    TouristicAttraction,
+)
 from app.services.geocoding_client import get_geocoding_client
 
 
@@ -50,6 +56,7 @@ class ForwardGeocodingService:
                 if isinstance(description, str):
                     description = cls._shorten(description)
                 return DepartmentInfo(
+                    id=dept.get("id"),
                     name=name,
                     description=description,
                     population=dept.get("population"),
@@ -57,6 +64,23 @@ class ForwardGeocodingService:
                     phone_prefix=dept.get("phonePrefix"),
                 )
         return None
+
+    @classmethod
+    def _filter_touristic_attractions(
+        cls, attractions: Optional[list[dict]], department_id: Optional[int]
+    ) -> list[TouristicAttraction]:
+        if not attractions or not department_id:
+            return []
+
+        results: list[TouristicAttraction] = []
+        for attraction in attractions:
+            city = attraction.get("city") if isinstance(attraction, dict) else None
+            if not isinstance(city, dict):
+                continue
+            if city.get("departmentId") != department_id:
+                continue
+            results.append(TouristicAttraction(**attraction))
+        return results
 
     @staticmethod
     def geocode(address: str) -> ForwardGeocodingResponse:
@@ -92,6 +116,18 @@ class ForwardGeocodingService:
                 client, g.state, g.country
             )
 
+            touristic_list: list[TouristicAttraction] = []
+            if department_info and department_info.id:
+                attractions = client.colombia_touristic_attractions()
+                touristic_list = ForwardGeocodingService._filter_touristic_attractions(
+                    attractions, department_info.id
+                )
+
+            api_colombia = ApiColombiaInfo(
+                departament=ApiColombiaDepartment(info=department_info),
+                touristic=touristic_list,
+            )
+
             return ForwardGeocodingResponse(
                 address=address,
                 latitude=g.lat,
@@ -102,7 +138,7 @@ class ForwardGeocodingService:
                 country=g.country,
                 postal=g.postal,
                 geojson=g.geojson,
-                department=department_info,
+                api_colombia=api_colombia,
                 timestamp=datetime.now(),
             )
 

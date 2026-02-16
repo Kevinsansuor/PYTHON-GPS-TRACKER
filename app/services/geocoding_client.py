@@ -144,8 +144,9 @@ class SmartGeocodingClient:
             return cached.get("data")
 
         try:
+            base_url = self._api_colombia_base_url()
             response = self._session.get(
-                "https://api-colombia.com/api/v1/Department", timeout=10
+                f"{base_url}/Department", timeout=10
             )
             response.raise_for_status()
             data = response.json()
@@ -155,6 +156,32 @@ class SmartGeocodingClient:
         if self._cache:
             self._cache.set(cache_key, {"data": data})
         return data
+
+    def colombia_touristic_attractions(self) -> Optional[list[Dict[str, Any]]]:
+        cache_key = self._hash_key("api-colombia", "touristic-attractions")
+        cached = self._cache.get(cache_key) if self._cache else None
+        if cached:
+            return cached.get("data")
+
+        try:
+            base_url = self._api_colombia_base_url()
+            endpoint = os.getenv("API_COLOMBIA_TOURISTIC_ENDPOINT", "/TouristicAttraction")
+            response = self._session.get(
+                f"{base_url}{endpoint}", timeout=10
+            )
+            response.raise_for_status()
+            data = response.json()
+        except Exception:  # noqa: BLE001
+            return None
+
+        if self._cache:
+            self._cache.set(cache_key, {"data": data})
+        return data
+
+    @staticmethod
+    def _api_colombia_base_url() -> str:
+        base_url = os.getenv("API_COLOMBIA_BASE_URL", "https://api-colombia.com/api/v1")
+        return base_url.rstrip("/")
 
     def _request(
         self,
