@@ -145,8 +145,9 @@ class SmartGeocodingClient:
 
         try:
             base_url = self._api_colombia_base_url()
+            endpoint = os.getenv("API_COLOMBIA_DEPARTMENT_ENDPOINT", "/Department")
             response = self._session.get(
-                f"{base_url}/Department", timeout=10
+                f"{base_url}{endpoint}", timeout=10
             )
             response.raise_for_status()
             data = response.json()
@@ -180,7 +181,9 @@ class SmartGeocodingClient:
 
     @staticmethod
     def _api_colombia_base_url() -> str:
-        base_url = os.getenv("API_COLOMBIA_BASE_URL", "https://api-colombia.com/api/v1")
+        base_url = os.getenv("API_COLOMBIA_BASE_URL")
+        if not base_url:
+            return ""
         return base_url.rstrip("/")
 
     def _request(
