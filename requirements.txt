@@ -5,7 +5,8 @@ pydantic-settings
 cryptography
 python-dotenv
 geocoder
-scipy scikit-learn
+scipy 
+scikit-learn
 scipy
 osmnx
 networkx

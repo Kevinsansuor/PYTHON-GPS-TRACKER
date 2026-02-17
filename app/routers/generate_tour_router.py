@@ -6,6 +6,7 @@ from app.services.generate_tour_service import GenerateTourService
 
 router = APIRouter()
 
+
 @router.post(
     "/generate-tour",
     response_model=GenerateRouteResponse,
